@@ -19,13 +19,51 @@ int twoState = 0;
 int threeState = 0;
 int fourState = 0;
 
+int numOfPlayers = 2;
+
 //Function to allow user to enter number of players 
 void enterPlayerNums(){
   lcd.clear();
   lcd.print("Number of");
   lcd.setCursor(0,1);
-  lcd.print("Players: 2");
+  lcd.print("Players: ");
+  lcd.print(numOfPlayers);
+  delay(300);
   //Listen for input
+  while (true){
+    oneState = analogRead(pinOne);
+    twoState = analogRead(pinTwo);
+    threeState = analogRead(pinThree);
+    fourState = analogRead(pinFour);
+
+    //Button 2 = Increase
+    if(twoState > 1000){
+      //Increment number of players
+      numOfPlayers++;
+      //Limit max number of players to 9
+      if (numOfPlayers > 9){
+        numOfPlayers = 9;
+      }
+      //Update LCD screen
+      lcd.setCursor(9,1);
+      lcd.print(numOfPlayers);
+    //Button 3 = Decrease
+    } else if(threeState > 1000){
+      //Decrement number of players
+      numOfPlayers--;
+      //Limit minimum number of players to 2
+      if (numOfPlayers < 2){
+        numOfPlayers = 2;
+      }
+      //Update LCD screen
+      lcd.setCursor(9,1);
+      lcd.print(numOfPlayers);
+    //Button 4 = continue
+    } else if(fourState > 1000){
+      break;
+    }
+    delay(100);
+  }
 }
 
 void setup() {
