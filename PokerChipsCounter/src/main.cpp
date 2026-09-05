@@ -44,6 +44,47 @@ struct Player{
 //VARIABLE DATA TYPE - DELETE BETWEEN ROUNDS
 Player* players = nullptr;
 
+void selectDealer(){
+  lcd.clear();
+  lcd.print("Select Dealer:");
+  lcd.setCursor(0,1);
+  lcd.print("P1: ");
+  lcd.print(players[0].name);
+  int dealer = 0;
+  while (true){
+    oneState = analogRead(pinOne);
+    twoState = analogRead(pinTwo);
+    threeState = analogRead(pinThree);
+    fourState = analogRead(pinFour);
+
+    //Previous player
+    if (twoState > 1000){
+      dealer--;
+      if (dealer < 0){
+        dealer = numOfPlayers-1;
+      }
+      lcd.setCursor(1,1);
+      lcd.print(dealer+1);
+      lcd.print(": ");
+      lcd.print(players[dealer].name);
+    //Next player
+    } else if (threeState > 1000){
+      dealer++;
+      if (dealer == numOfPlayers){
+        dealer = 0;
+      }
+      lcd.setCursor(1,1);
+      lcd.print(dealer+1);
+      lcd.print(": ");
+      lcd.print(players[dealer].name);
+
+    //Continue
+    } else if (fourState > 1000){
+      break;
+    }
+  }
+}
+
 //Function to enter how much money each player starts with
 void enterStartingAllowance(){
   lcd.clear();
@@ -300,58 +341,12 @@ void setup() {
 }
 
 
-
+bool errorMessagePrinted = false;
 void loop() {
-  oneState = analogRead(pinOne);
-  twoState = analogRead(pinTwo);
-  threeState = analogRead(pinThree);
-  fourState = analogRead(pinFour);
-
-  if (oneState > 1000){
-    Serial.print("One pressed\t");
-    Serial.print(oneState);
-    Serial.print(" ");
-    Serial.print(twoState);
-    Serial.print(" ");
-    Serial.print(threeState);
-    Serial.print(" ");
-    Serial.println(fourState);
-  } else if (twoState > 1000){
-    Serial.print("Two pressed\t");
-    Serial.print(oneState);
-    Serial.print(" ");
-    Serial.print(twoState);
-    Serial.print(" ");
-    Serial.print(threeState);
-    Serial.print(" ");
-    Serial.println(fourState);
-  } else if (threeState > 1000){
-    Serial.print("Three pressed\t");
-    Serial.print(oneState);
-    Serial.print(" ");
-    Serial.print(twoState);
-    Serial.print(" ");
-    Serial.print(threeState);
-    Serial.print(" ");
-    Serial.println(fourState);
-  } else if (fourState > 1000){
-    Serial.print("Four pressed\t");
-    Serial.print(oneState);
-    Serial.print(" ");
-    Serial.print(twoState);
-    Serial.print(" ");
-    Serial.print(threeState);
-    Serial.print(" ");
-    Serial.println(fourState);
-  } else{
-    Serial.print("Nothing pressed\t");
-    Serial.print(oneState);
-    Serial.print(" ");
-    Serial.print(twoState);
-    Serial.print(" ");
-    Serial.print(threeState);
-    Serial.print(" ");
-    Serial.println(fourState);
+  if (!errorMessagePrinted){
+    lcd.print("Something went");
+    lcd.setCursor(0,1);
+    lcd.print("Wrong :/");
+    errorMessagePrinted = true;
   }
-  delay(30);
 }
