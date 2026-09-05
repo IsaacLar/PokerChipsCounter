@@ -22,15 +22,113 @@ int fourState = 0;
 
 int numOfPlayers = 2;
 
+//Cutsom pixel array for £
+byte poundSign[8] = {
+  B01100,
+  B10010,
+  B10000,
+  B11100,
+  B10000,
+  B10010,
+  B11110,
+  B00000
+};
+
 //Player struct to hold player name and current balance
 struct Player{
   char name[4];
-  int balance;
+  long balance;
 };
 
 //Null pointer to become array of players
 //VARIABLE DATA TYPE - DELETE BETWEEN ROUNDS
 Player* players = nullptr;
+
+//Function to enter how much money each player starts with
+void enterStartingAllowance(){
+  lcd.clear();
+  lcd.print("Starting ");
+  lcd.write(byte(0));
+  lcd.print("000100");
+  lcd.setCursor(13,1);
+  lcd.print("-");
+
+  //Store allowance as array so each number can be changed individually
+  int startingAllowance[6] = {0,0,0,1,0,0};
+  //Start on the 1
+  int effectedNum = 3;
+
+  bool numEntered = false;
+
+  while(!numEntered){
+    oneState = analogRead(pinOne);
+    twoState = analogRead(pinTwo);
+    threeState = analogRead(pinThree);
+    fourState = analogRead(pinFour);
+
+    //Button 1 = Confirm
+      if (oneState > 1000){
+        numEntered = true;
+      //Button 2 = Increment value
+      } else if (twoState > 1000){
+        //Increment character value
+        startingAllowance[effectedNum]++;
+        //Loop round if necessary
+        if (startingAllowance[effectedNum] > 9){
+          startingAllowance[effectedNum] = 0;
+        }
+        //Update LCD
+        lcd.setCursor(10+effectedNum,0);
+        lcd.print(startingAllowance[effectedNum]);
+
+      //Button 3 = Decrement value
+      } else if (threeState > 1000){
+        //Decrement character value
+        startingAllowance[effectedNum]--;
+        //Loop round if necessary
+        if (startingAllowance[effectedNum] < 0){
+          startingAllowance[effectedNum] = 9;
+        }
+        //Update LCD
+        lcd.setCursor(10+effectedNum, 0);
+        lcd.print(startingAllowance[effectedNum]);
+    
+      //Button 4 = Move right
+      } else if (fourState > 1000){
+        //Clear the current dash
+        lcd.setCursor(10+effectedNum,1);
+        lcd.print(" ");
+        //Increment dash position
+        effectedNum++;
+        //Loop back if necessary
+        if (effectedNum > 5){
+          effectedNum = 0;
+        }
+        //Draw the new dash position
+        lcd.setCursor(10+effectedNum, 1);
+        lcd.print("-");
+      }
+      delay(150);
+  }
+
+  //Convert integer array into a single number
+  long allowanceAsNum = 0;
+    for (int j = 0; j < 6; j++){
+      allowanceAsNum = allowanceAsNum * 10 + startingAllowance[j]; 
+    }
+
+  //Save players starting allowances
+  for (int i = 0; i < numOfPlayers; i++){
+    players[i].balance = allowanceAsNum;
+  }
+
+  for (int i = 0; i < numOfPlayers; i++){
+    Serial.print(players[i].name);
+    Serial.print("\t");
+    Serial.println(players[i].balance);
+  }
+
+}
 
 //Function to allow user to enter number of players 
 void enterPlayerNums(){
@@ -75,6 +173,8 @@ void enterPlayerNums(){
     }
     delay(100);
   }
+
+  //PLAYER NAME ENTRY
 
   //Define a new Player array of size (whatever the user entered)
   players = new Player[numOfPlayers];
@@ -155,16 +255,17 @@ void enterPlayerNums(){
     //Add null terminator to the end of player name
     players[i].name[3] = '\0';    
   }
-  
-  for (int i = 0; i < numOfPlayers; i++){
-    Serial.println(players[i].name);
-  }
+
+  enterStartingAllowance();
 }
 
 void setup() {
   analogWrite(contrast, 130);
   //Define the LCD as 16x2 screen
   lcd.begin(16, 2);
+
+  //Store £ at index 0
+  lcd.createChar(0, poundSign);
 
   Serial.begin(9600);
 
@@ -174,6 +275,7 @@ void setup() {
   pinMode(pinThree, INPUT);
   pinMode(pinFour, INPUT);
 
+  lcd.clear();
   //Beginning message
   lcd.print("Welcome to");
   lcd.setCursor(0,1);
