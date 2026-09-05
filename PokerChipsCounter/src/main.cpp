@@ -20,6 +20,12 @@ int twoState = 0;
 int threeState = 0;
 int fourState = 0;
 
+bool onePressed = false;
+bool twoPressed = false;
+bool threePressed = false;
+bool fourPressed = false;
+
+//Total number of players - default 2
 int numOfPlayers = 2;
 
 //Cutsom pixel array for £
@@ -51,14 +57,20 @@ void selectDealer(){
   lcd.print("P1: ");
   lcd.print(players[0].name);
   int dealer = 0;
+
   while (true){
     oneState = analogRead(pinOne);
     twoState = analogRead(pinTwo);
     threeState = analogRead(pinThree);
-    fourState = analogRead(pinFour);
 
-    //Previous player
-    if (twoState > 1000){
+    //Confirm
+    if (oneState < 200 && !onePressed){
+      onePressed = true;
+      break;
+    } else if (oneState > 1000 && onePressed){
+      onePressed = false;
+      //Previous player
+    } else if (twoState > 1000 && !twoPressed){
       dealer--;
       if (dealer < 0){
         dealer = numOfPlayers-1;
@@ -67,8 +79,11 @@ void selectDealer(){
       lcd.print(dealer+1);
       lcd.print(": ");
       lcd.print(players[dealer].name);
+      twoPressed = true;
+    } else if (twoState < 200 && twoPressed){
+      twoPressed = false;
     //Next player
-    } else if (threeState > 1000){
+    } else if (threeState > 1000 && !threePressed){
       dealer++;
       if (dealer == numOfPlayers){
         dealer = 0;
@@ -77,12 +92,14 @@ void selectDealer(){
       lcd.print(dealer+1);
       lcd.print(": ");
       lcd.print(players[dealer].name);
-
-    //Continue
-    } else if (fourState > 1000){
-      break;
+      threePressed = true;
+    } else if (threeState < 200 && threePressed){
+      threePressed = false;
     }
+    delay(30);
   }
+  Serial.print("Dealer: ");
+  Serial.print(players[dealer].name);
 }
 
 //Function to enter how much money each player starts with
@@ -108,48 +125,69 @@ void enterStartingAllowance(){
     fourState = analogRead(pinFour);
 
     //Button 1 = Confirm
-      if (oneState > 1000){
-        numEntered = true;
-      //Button 2 = Increment value
-      } else if (twoState > 1000){
-        //Increment character value
-        startingAllowance[effectedNum]++;
-        //Loop round if necessary
-        if (startingAllowance[effectedNum] > 9){
-          startingAllowance[effectedNum] = 0;
+    if (oneState > 1000 && !onePressed){
+      //Check to ensure entered number !0
+      bool inputAllowed = false;
+      for (int i = 0; i < 6; i++){
+        if (startingAllowance[i] != 0){
+          inputAllowed = true;
+          break;
         }
-        //Update LCD
-        lcd.setCursor(10+effectedNum,0);
-        lcd.print(startingAllowance[effectedNum]);
-
-      //Button 3 = Decrement value
-      } else if (threeState > 1000){
-        //Decrement character value
-        startingAllowance[effectedNum]--;
-        //Loop round if necessary
-        if (startingAllowance[effectedNum] < 0){
-          startingAllowance[effectedNum] = 9;
-        }
-        //Update LCD
-        lcd.setCursor(10+effectedNum, 0);
-        lcd.print(startingAllowance[effectedNum]);
-    
-      //Button 4 = Move right
-      } else if (fourState > 1000){
-        //Clear the current dash
-        lcd.setCursor(10+effectedNum,1);
-        lcd.print(" ");
-        //Increment dash position
-        effectedNum++;
-        //Loop back if necessary
-        if (effectedNum > 5){
-          effectedNum = 0;
-        }
-        //Draw the new dash position
-        lcd.setCursor(10+effectedNum, 1);
-        lcd.print("-");
       }
-      delay(150);
+      onePressed = true;
+      //Only allow continuation if input checked
+      if (inputAllowed){
+        numEntered = true;
+      }
+    } else if (oneState < 200 && onePressed){
+      onePressed = false;
+    //Button 2 = Increment value
+    } else if (twoState > 1000 && !twoPressed){
+      //Increment character value
+      startingAllowance[effectedNum]++;
+      //Loop round if necessary
+      if (startingAllowance[effectedNum] > 9){
+        startingAllowance[effectedNum] = 0;
+      }
+      //Update LCD
+      lcd.setCursor(10+effectedNum,0);
+      lcd.print(startingAllowance[effectedNum]);
+      twoPressed = true;
+    } else if (twoState < 200 && twoPressed){
+      twoPressed = false;
+    //Button 3 = Decrement value
+    } else if (threeState > 1000 && !threePressed){
+      //Decrement character value
+      startingAllowance[effectedNum]--;
+      //Loop round if necessary
+      if (startingAllowance[effectedNum] < 0){
+        startingAllowance[effectedNum] = 9;
+      }
+      //Update LCD
+      lcd.setCursor(10+effectedNum, 0);
+      lcd.print(startingAllowance[effectedNum]);
+      threePressed = true;
+    } else if (threeState < 200 && threePressed){
+      threePressed = false;
+    //Button 4 = Move right
+    } else if (fourState > 1000 && !fourPressed){
+      //Clear the current dash
+      lcd.setCursor(10+effectedNum,1);
+      lcd.print(" ");
+      //Increment dash position
+      effectedNum++;
+      //Loop back if necessary
+      if (effectedNum > 5){
+        effectedNum = 0;
+      }
+      //Draw the new dash position
+      lcd.setCursor(10+effectedNum, 1);
+      lcd.print("-");
+      fourPressed = true;
+    } else if (fourState < 200 && fourPressed){
+      fourPressed = false;
+    }
+    delay(30);
   }
 
   //Convert integer array into a single number
@@ -168,7 +206,7 @@ void enterStartingAllowance(){
     Serial.print("\t");
     Serial.println(players[i].balance);
   }
-
+  selectDealer();
 }
 
 //Function to allow user to enter number of players 
@@ -184,10 +222,15 @@ void enterPlayerNums(){
     oneState = analogRead(pinOne);
     twoState = analogRead(pinTwo);
     threeState = analogRead(pinThree);
-    fourState = analogRead(pinFour);
-
-    //Button 2 = Increase
-    if(twoState > 1000){
+    
+    //Button 1 = Confirm
+    if (oneState > 1000 && !onePressed){
+      onePressed = true;
+      break;
+    } else if (oneState < 200 && onePressed){
+      onePressed = false;
+      //Button 2 = Increase
+    } else if(twoState > 1000 && !twoPressed){
       //Increment number of players
       numOfPlayers++;
       //Limit max number of players to 9
@@ -197,8 +240,12 @@ void enterPlayerNums(){
       //Update LCD screen
       lcd.setCursor(9,1);
       lcd.print(numOfPlayers);
+      twoPressed = true;
+    //Reset button press
+    } else if(twoState < 200 && twoPressed){
+      twoPressed = false;
     //Button 3 = Decrease
-    } else if(threeState > 1000){
+    }else if(threeState > 1000 && !threePressed){
       //Decrement number of players
       numOfPlayers--;
       //Limit minimum number of players to 2
@@ -208,11 +255,12 @@ void enterPlayerNums(){
       //Update LCD screen
       lcd.setCursor(9,1);
       lcd.print(numOfPlayers);
-    //Button 4 = continue
-    } else if(fourState > 1000){
-      break;
-    }
-    delay(100);
+      threePressed = true;
+    //Reset button press
+    } else if (threeState < 200 && threePressed){
+      threePressed = false;
+    } 
+    delay(30);
   }
 
   //PLAYER NAME ENTRY
@@ -246,10 +294,13 @@ void enterPlayerNums(){
       threeState = analogRead(pinThree);
       fourState = analogRead(pinFour);
       //Button 1 = Confirm
-      if (oneState > 1000){
+      if (oneState > 1000 && !onePressed){
+        onePressed = true;
         playerNameEntered = true;
+      } else if (oneState < 200 && onePressed){
+        onePressed = false;
       //Button 2 = Increment value
-      } else if (twoState > 1000){
+      } else if (twoState > 1000 && !twoPressed){
         //Increment character value
         name[effectedChar]++;
         //Loop round if necessary
@@ -259,9 +310,11 @@ void enterPlayerNums(){
         //Update LCD
         lcd.setCursor(9+effectedChar,0);
         lcd.print((char)name[effectedChar]);
-
+        twoPressed = true;
+      } else if (twoState < 200 && twoPressed){
+        twoPressed = false;
       //Button 3 = Decrement value
-      } else if (threeState > 1000){
+      } else if (threeState > 1000 && !threePressed){
         //Decrement character value
         name[effectedChar]--;
         //Loop round if necessary
@@ -271,9 +324,11 @@ void enterPlayerNums(){
         //Update LCD
         lcd.setCursor(9+effectedChar, 0);
         lcd.print((char)name[effectedChar]);
-    
+        threePressed = true;
+      } else if (threeState < 200 && threePressed){
+        threePressed = false;    
       //Button 4 = Move right
-      } else if (fourState > 1000){
+      } else if (fourState > 1000 && !fourPressed){
         //Clear the current dash
         lcd.setCursor(9+effectedChar,1);
         lcd.print(" ");
@@ -286,8 +341,11 @@ void enterPlayerNums(){
         //Draw the new dash position
         lcd.setCursor(9+effectedChar, 1);
         lcd.print("-");
+        fourPressed = true;
+      } else if (fourState < 200 && fourPressed){
+        fourPressed = false;
       }
-      delay(150);
+      delay(30);
     }
     //Pass the player "name to the struct"
     for (int j = 0; j < 3; j++){
@@ -333,8 +391,6 @@ void setup() {
     if (oneState > 1000 || twoState > 1000 || threeState > 1000 || fourState > 1000){
       break;
     }
-
-    delay(50);
   }
 
   enterPlayerNums();
@@ -344,9 +400,10 @@ void setup() {
 bool errorMessagePrinted = false;
 void loop() {
   if (!errorMessagePrinted){
+    lcd.clear();
     lcd.print("Something went");
     lcd.setCursor(0,1);
-    lcd.print("Wrong :/");
+    lcd.print("wrong :/");
     errorMessagePrinted = true;
   }
 }
